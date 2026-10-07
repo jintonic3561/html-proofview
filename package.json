@@ -2,7 +2,7 @@
   "name": "html-proofview",
   "displayName": "HTML ProofView",
   "description": "HTMLをレンダリングした見た目のまま、文言のgit差分を表示してその場で修正できるプレビュー",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "publisher": "tonic",
   "license": "MIT",
   "engines": {
@@ -82,8 +82,8 @@
         },
         "htmlProofView.allowPageScripts": {
           "type": "boolean",
-          "default": false,
-          "description": "ページ自身の<script>を実行する（DOMを書き換えるスクリプトがあると差分表示が崩れることがある）"
+          "default": true,
+          "description": "ページ自身の<script>を実行する。スクリプトが書いた文言はソースに対応づけられないので、編集不可（グレーの点線）として表示する。オフにするとスクリプトが生成する文言は表示されない"
         }
       }
     }
@@ -91,7 +91,7 @@
   "scripts": {
     "build": "esbuild src/extension.ts --bundle --platform=node --format=cjs --target=node18 --external:vscode --outfile=dist/extension.js --minify",
     "typecheck": "tsc --noEmit",
-    "test": "esbuild test/core.test.ts --bundle --platform=node --outfile=dist/test.js --log-level=warning && node dist/test.js && node test/run-ext-test.js",
+    "test": "esbuild test/core.test.ts --bundle --platform=node --outfile=dist/test.js --log-level=warning && node dist/test.js && node test/run-ext-test.js && esbuild test/preview.test.ts --bundle --platform=node --external:jsdom --outfile=dist/preview.test.js --log-level=warning && node dist/preview.test.js",
     "package": "npm run build && vsce package --no-dependencies",
     "vscode:prepublish": "npm run build"
   },
@@ -102,9 +102,11 @@
   },
   "devDependencies": {
     "@types/diff": "^5.2.3",
+    "@types/jsdom": "^30.0.0",
     "@types/node": "^20.19.19",
     "@types/vscode": "1.85.0",
     "esbuild": "^0.28.2",
+    "jsdom": "^26.1.0",
     "typescript": "^5.9.3"
   }
 }

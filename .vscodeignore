@@ -6,5 +6,5 @@ tsconfig.json
 **/*.map
 *.vsix
 dist/test.js
-dist/ext.test.js
+dist/*.test.js
 .gitignore
