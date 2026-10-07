@@ -1,0 +1,54 @@
+/* Undo VS Code's default webview styles so the page looks like it would in a browser.
+   This file is injected before the page's own CSS, so the page still wins. */
+:root { color-scheme: light; }
+html { background: #fff; color: #000; }
+body {
+  padding: revert; margin: revert; color: revert; background-color: revert;
+  font-family: revert; font-size: revert; font-weight: revert; line-height: revert;
+}
+a { color: revert; text-decoration: revert; }
+a:focus, input:focus, select:focus, textarea:focus { outline: revert; }
+code, kbd { color: revert; font-family: revert; font-size: revert; background: revert; padding: revert; border-radius: revert; }
+blockquote { background: revert; border: revert; padding: revert; margin: revert; }
+img, video { max-width: revert; max-height: revert; }
+
+/* Diff markup injected into the rendered page. Kept minimal so the page's own look survives. */
+.hd-text { cursor: text; border-radius: 2px; }
+.hd-text:hover { outline: 1px dashed rgba(9, 105, 218, .55); outline-offset: 1px; }
+
+ins.hd-ins {
+  text-decoration: none !important;
+  background: rgba(46, 160, 67, .22) !important;
+  box-shadow: inset 0 -2px 0 rgba(46, 160, 67, .75);
+  color: inherit;
+}
+del.hd-del, del.hd-removed {
+  text-decoration: line-through !important;
+  text-decoration-color: rgba(207, 34, 46, .9) !important;
+  background: rgba(248, 81, 73, .16) !important;
+  color: inherit;
+  opacity: .8;
+}
+del.hd-removed { cursor: default; }
+del.hd-removed.hd-block {
+  display: block;
+  margin: .3em 0;
+  padding: .15em .5em;
+  border-left: 3px solid rgba(207, 34, 46, .8);
+  font-size: .95em;
+}
+
+.hd-editing {
+  outline: 2px solid #0969da !important;
+  outline-offset: 2px;
+  background: rgba(9, 105, 218, .08) !important;
+  cursor: text;
+}
+.hd-pending { opacity: .5; transition: opacity .2s; }
+
+@keyframes hd-flash { 0%, 60% { outline: 3px solid #bf8700; outline-offset: 3px; } 100% { outline-color: transparent; } }
+.hd-flash { animation: hd-flash 1.2s ease-out; }
+
+/* diff hidden: show the page as it will look */
+html.hd-off del.hd-del, html.hd-off del.hd-removed { display: none !important; }
+html.hd-off ins.hd-ins { background: none !important; box-shadow: none; }

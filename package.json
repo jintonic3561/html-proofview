@@ -1,0 +1,110 @@
+{
+  "name": "html-proofview",
+  "displayName": "HTML ProofView",
+  "description": "HTMLをレンダリングした見た目のまま、文言のgit差分を表示してその場で修正できるプレビュー",
+  "version": "0.2.0",
+  "publisher": "tonic",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Visualization",
+    "Other"
+  ],
+  "keywords": [
+    "html",
+    "diff",
+    "git",
+    "preview",
+    "copywriting",
+    "文言"
+  ],
+  "icon": "media/icon.png",
+  "main": "./dist/extension.js",
+  "activationEvents": [],
+  "contributes": {
+    "commands": [
+      {
+        "command": "htmlProofView.open",
+        "title": "プレビューを開く",
+        "category": "HTML ProofView",
+        "icon": "$(diff)"
+      },
+      {
+        "command": "htmlProofView.setBaseRef",
+        "title": "比較元のgit refを変更",
+        "category": "HTML ProofView"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "htmlProofView.open",
+          "when": "resourceLangId == html",
+          "group": "navigation"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "htmlProofView.open",
+          "when": "resourceLangId == html",
+          "group": "navigation"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "htmlProofView.open",
+          "when": "editorLangId == html"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "htmlProofView.open",
+        "key": "ctrl+shift+v",
+        "mac": "cmd+shift+v",
+        "when": "editorLangId == html"
+      }
+    ],
+    "configuration": {
+      "title": "HTML ProofView",
+      "properties": {
+        "htmlProofView.baseRef": {
+          "type": "string",
+          "default": "INDEX",
+          "description": "比較元のgit ref。INDEX はステージ（git add した内容）と比べるので、addした変更は差分から消える。HEAD, main, HEAD~1, タグ, コミットハッシュなども指定できる"
+        },
+        "htmlProofView.autoSave": {
+          "type": "boolean",
+          "default": false,
+          "description": "プレビューで文言を編集したらファイルを自動保存する"
+        },
+        "htmlProofView.allowPageScripts": {
+          "type": "boolean",
+          "default": false,
+          "description": "ページ自身の<script>を実行する（DOMを書き換えるスクリプトがあると差分表示が崩れることがある）"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "esbuild src/extension.ts --bundle --platform=node --format=cjs --target=node18 --external:vscode --outfile=dist/extension.js --minify",
+    "typecheck": "tsc --noEmit",
+    "test": "esbuild test/core.test.ts --bundle --platform=node --outfile=dist/test.js --log-level=warning && node dist/test.js && node test/run-ext-test.js",
+    "package": "npm run build && vsce package --no-dependencies",
+    "vscode:prepublish": "npm run build"
+  },
+  "dependencies": {
+    "diff": "^5.2.0",
+    "entities": "^4.5.0",
+    "parse5": "^7.3.0"
+  },
+  "devDependencies": {
+    "@types/diff": "^5.2.3",
+    "@types/node": "^20.19.19",
+    "@types/vscode": "1.85.0",
+    "esbuild": "^0.28.2",
+    "typescript": "^5.9.3"
+  }
+}
