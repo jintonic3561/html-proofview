@@ -133,6 +133,8 @@ class Preview {
     const head =
       `<meta http-equiv="Content-Security-Policy" content="${csp}">` +
       (baseHref ? `<base href="${baseHref}">` : '') +
+      // Take the VS Code API before any page script can.
+      `<script nonce="${n}">window.__hd_vscode=acquireVsCodeApi();</script>` +
       `<link rel="stylesheet" href="${media('preview.css')}">`;
     let result;
     try {

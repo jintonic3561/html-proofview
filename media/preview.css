@@ -38,6 +38,15 @@ del.hd-removed.hd-block {
   font-size: .95em;
 }
 
+/* Text that cannot be mapped back to the source (SVG/MathML, form controls,
+   text written by the page's scripts): shown, but not editable. */
+html:not(.hd-off) .hd-locked {
+  cursor: not-allowed;
+  background-image: linear-gradient(rgba(110, 118, 129, .14), rgba(110, 118, 129, .14));
+  outline: 1px dotted rgba(110, 118, 129, .75);
+  outline-offset: 1px;
+}
+
 .hd-editing {
   outline: 2px solid #0969da !important;
   outline-offset: 2px;

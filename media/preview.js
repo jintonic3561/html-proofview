@@ -1,9 +1,11 @@
 // Injected into the rendered page inside the webview.
 (function () {
   'use strict';
-  const vscode = typeof acquireVsCodeApi === 'function'
-    ? acquireVsCodeApi()
-    : { postMessage: (m) => console.log('postMessage', m), getState: () => null, setState: () => {} };
+  // The extension acquires the API in <head> before any page script can.
+  const vscode = window.__hd_vscode
+    || (typeof acquireVsCodeApi === 'function' ? acquireVsCodeApi() : null)
+    || { postMessage: (m) => console.log('postMessage', m), getState: () => null, setState: () => {} };
+  delete window.__hd_vscode;
 
   const stateEl = document.getElementById('__hd_state');
   const S = stateEl ? JSON.parse(stateEl.textContent) : { stats: { added: 0, removed: 0, modified: 0 }, baseLabel: '', version: 0 };
@@ -29,6 +31,65 @@
 
   // ------------------------------------------------------------ editing
   let editing = null; // { el, html, text }
+
+  // ------------------------------------------------------------ locked text
+  // The extension wraps every text node it can edit in .hd-text. Visible text
+  // outside those spans cannot be mapped back to the source: SVG/MathML labels,
+  // form controls, text the parser stitched together and anything the page's
+  // own scripts wrote. Mark it so it looks different and is not clickable.
+  const XHTML = 'http://www.w3.org/1999/xhtml';
+  const NO_TEXT = new Set(['script', 'style', 'noscript', 'template', 'title', 'desc', 'iframe', 'noframes']);
+  const LOCK_TITLE = 'ソースに対応づけられない文言（スクリプトが生成・SVG・フォーム部品など）のため、ここでは編集できません';
+  const pageRoot = document.body || document.documentElement;
+
+  // Returns the element marked for text node `t`, or null when it is fine.
+  // `mutated` is true for text that appeared or changed after the page loaded.
+  function lockFor(t, mutated) {
+    if (!t.data.trim()) return null;
+    const parent = t.parentElement;
+    if (!parent || parent === pageRoot || NO_TEXT.has(parent.localName) || parent.closest('.hd-removed')) return null;
+    const stat = parent.closest('.hd-text');
+    let el;
+    if (stat) {
+      if (!mutated) return null;
+      // The page's script rewrote text we handed out for editing.
+      stat.classList.remove('hd-text');
+      stat.removeAttribute('title');
+      el = stat;
+    } else {
+      // Foreign content (svg, math): mark the whole figure, not every label.
+      el = parent;
+      while (el.parentElement && el.parentElement !== pageRoot && el.parentElement.namespaceURI !== XHTML) el = el.parentElement;
+    }
+    el.classList.add('hd-locked');
+    if (el.namespaceURI === XHTML && !el.hasAttribute('title')) el.setAttribute('title', LOCK_TITLE);
+    return el;
+  }
+
+  function lockTree(root, mutated) {
+    let n = 0;
+    if (root.nodeType === 3) return lockFor(root, mutated) ? 1 : 0;
+    if (root.nodeType !== 1) return 0;
+    const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    for (let t = w.nextNode(); t; t = w.nextNode()) if (lockFor(t, mutated)) n++;
+    return n;
+  }
+
+  let lockTimer;
+  const mo = new MutationObserver((records) => {
+    let n = 0;
+    for (const r of records) {
+      if (editing && editing.el.contains(r.target)) continue; // the user typing
+      if (r.type === 'characterData') n += lockTree(r.target, true);
+      else r.addedNodes.forEach((a) => { n += lockTree(a, true); });
+    }
+    if (n) { clearTimeout(lockTimer); lockTimer = setTimeout(updateLocked, 100); }
+  });
+  // Our own DOM writes must not count as page mutations.
+  const quiet = (fn) => { fn(); mo.takeRecords(); };
+
+  lockTree(pageRoot, false);
+  mo.observe(pageRoot, { childList: true, characterData: true, subtree: true });
 
   const currentText = (el) => {
     const c = el.cloneNode(true);
@@ -57,6 +118,7 @@
 
   function finish() {
     const { el } = editing;
+    mo.takeRecords(); // drop the records of the user's typing
     editing = null; // clear first: removing contenteditable fires focusout synchronously
     el.removeAttribute('contenteditable');
     el.classList.remove('hd-editing');
@@ -67,7 +129,7 @@
     if (!editing) return;
     const html = editing.html;
     const el = finish();
-    el.innerHTML = html;
+    quiet(() => { el.innerHTML = html; });
   }
 
   function commit() {
@@ -76,7 +138,7 @@
     const next = el.innerText.replace(/\n+$/, '');
     finish();
     if (window.getSelection) window.getSelection().removeAllRanges();
-    if (next === text) { el.innerHTML = html; return; }
+    if (next === text) { quiet(() => { el.innerHTML = html; }); return; }
     el.classList.add('hd-pending');
     vscode.postMessage({ type: 'edit', id: Number(el.dataset.hdId), text: next, version: S.version });
   }
@@ -169,6 +231,8 @@
   const root = host.attachShadow({ mode: 'open' });
   const { added, removed, modified } = S.stats;
   const total = added + removed + modified;
+  const lockedCount = () => document.querySelectorAll('.hd-locked').length;
+  const locked = lockedCount();
   root.innerHTML = `
     <style>
       :host { all: initial; position: fixed; top: 10px; right: 10px; z-index: 2147483647; }
@@ -179,7 +243,7 @@
       .base { color: #57606a; max-width: 16em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
       .base:hover { text-decoration: underline; }
       .n { font-variant-numeric: tabular-nums; font-weight: 600; }
-      .a { color: #1a7f37; } .m { color: #9a6700; } .r { color: #cf222e; }
+      .a { color: #1a7f37; } .m { color: #9a6700; } .r { color: #cf222e; } .l { color: #57606a; }
       .sep { width: 1px; align-self: stretch; background: #d0d7de; }
       button { all: unset; cursor: pointer; padding: 2px 6px; border-radius: 5px; color: #1f2328; }
       button:hover { background: #eaeef2; }
@@ -189,7 +253,7 @@
       .min .hide { display: none; }
       @media (prefers-color-scheme: dark) {
         .bar { color: #e6edf3; background: rgba(22,27,34,.96); border-color: #30363d; }
-        .base, .pos { color: #8b949e; } .sep { background: #30363d; }
+        .base, .pos, .l { color: #8b949e; } .sep { background: #30363d; }
         button { color: #e6edf3; } button:hover { background: #30363d; }
         button[aria-pressed="true"] { background: #1f3a5f; color: #58a6ff; }
         .a { color: #3fb950; } .m { color: #d29922; } .r { color: #f85149; }
@@ -201,6 +265,7 @@
       <span class="n a" title="追加">+${added}</span>
       <span class="n m" title="変更">~${modified}</span>
       <span class="n r" title="削除">−${removed}</span>
+      <span class="n l" title="編集できない箇所（スクリプトが生成・SVG・フォーム部品など）" ${locked ? '' : 'hidden'}>⊘${locked}</span>
       <span class="hide sep"></span>
       <button class="hide prev" title="前の変更 (p / Shift+F7)" ${total ? '' : 'disabled'}>▲</button>
       <span class="hide pos"></span>
@@ -213,6 +278,8 @@
   const $ = (s) => root.querySelector(s);
   const toggleBtn = $('.toggle');
   const posEl = $('.pos');
+  const lockEl = $('.l');
+  function updateLocked() { const k = lockedCount(); lockEl.textContent = '⊘' + k; lockEl.hidden = !k; }
   function updatePos() { posEl.textContent = total ? `${idx < 0 ? '–' : idx + 1}/${changes().length}` : '差分なし'; }
   $('.prev').onclick = () => go(-1);
   $('.next').onclick = () => go(1);
