@@ -8,10 +8,6 @@
 	},
 
 	"remoteUser": "node",
-
-	// 非対話シェル（Claude Code の bash・VS Code のタスク・npm scripts の子プロセス等）でも
-	// direnv で .envrc（＝ .env）を読み込む。対話シェルは BASH_ENV を読まないので
-	// postCreate.sh が ~/.bashrc 側に direnv の hook を仕掛ける。
 	"containerEnv": {
 		"BASH_ENV": "${containerWorkspaceFolder}/.devcontainer/bash_env.sh"
 	},

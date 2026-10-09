@@ -7,10 +7,8 @@ HTMLをレンダリングした見た目のまま、**文言の変更だけ**を
 > **HTML ProofView** is a VS Code extension for proofreading the copy of HTML pages. It renders the page as-is, highlights word-level text changes against a git ref (the index by default, so `git add` clears what you have already reviewed), and lets you fix the wording in place. The UI is in Japanese.
 
 - 既定ではステージと比べるので、確認し終えた変更を `git add` すると差分から消えます。修正しながら、どこまでレビューしたかが分かります。コミットと比べたいときは比較元を `HEAD` などに変えます。
-- 変更箇所は語単位で表示します（削除は赤の取り消し線、追加は緑）。日本語は `Intl.Segmenter` で単語に区切るので、「作業→仕事」のような差分も読みやすく出ます。
-- 丸ごと削除された文言は、削除された位置に赤いブロックで表示します。
-- 文言をクリックするとその場で編集できます。Enterで確定、Escでキャンセル、Shift+Enterは使いません（1行入力）。
-- 確定すると元のHTMLソースの**変わった部分だけ**を書き換えます。`&copy;` などのエンティティや、ソース上の改行・インデントはそのまま残ります。
+- 変更箇所は語単位で表示します（削除は赤の取り消し線、追加は緑）。
+- 文言をクリックするとその場で編集できます。Enterで確定、Escでキャンセルします。
 - 文言を全部消して確定すると、それで空になる要素（`p`・`li`・見出し・`b` や `a` などのインライン要素・空になったリスト）もソースの行ごと消します。`div`・`section`・`td` などの枠になる要素は残して、文言だけ消します。
 - Ctrl+クリック（macは⌘+クリック）で、その文言のソース位置にジャンプします。
 - ソースに対応づけられない文言（SVG内のラベル、`textarea`・`option` の中身、ページ自身のJSが書いた文言）はグレーの点線で囲んで表示します。見えますが編集はできません。件数はツールバーの `⊘` に出ます。
@@ -46,18 +44,6 @@ code --install-extension html-proofview-X.Y.Z.vsix
 | `htmlProofView.baseRef` | `INDEX` | 比較元。`INDEX` はステージ（`git add` した内容）。ほかに `HEAD`, `main`, `HEAD~1`, `origin/main`, タグ, ハッシュなど |
 | `htmlProofView.autoSave` | `false` | プレビューで編集したら自動保存する |
 | `htmlProofView.allowPageScripts` | `true` | ページ自身の `<script>` を実行する。オフにするとJSが生成する文言は表示されない |
-
-## 仕様と制限
-
-- 比較の対象は `<body>` 内の表示テキストです。`<title>`、`<script>`、`<style>`、`<textarea>`、`<option>`、SVG内のテキスト、属性値（`alt`, `placeholder` など）は対象外です。このうち画面に見えるもの（SVG、フォーム部品）はグレーの点線で囲み、編集できないことが分かるようにします。SVGは図ごとに囲みます。
-- テキストは「要素で区切られたかたまり」ごとに比べます。`<p>Hello <b>world</b></p>` なら、`Hello ` と `world` は別々のかたまりとして扱います。
-- 空白は、ブラウザと同じく連続した空白を1つにまとめて比べます（`<pre>` の中は除く）。
-- CSSや画像は相対パスでそのまま読み込みます。外部のhttps上のCSS、フォント、画像も読み込みます。
-- ページ自身のJSは既定で実行します。JSが書いた文言は表示されますが、ソースに対応づけられないので編集できません（グレーの点線）。JSが静的な文言を書き換えた場合も、その箇所は編集できなくなります。ページ全体をJSで描画するページでは、ほぼ全部がグレーになります。
-- テンプレートエンジンの構文（`{{ }}` や `<%= %>` など）は、そのまま文字として表示されます。
-- 信頼されていないワークスペース（制限モード）では無効です。比較元の取得にワークスペース内で `git` を実行するためです。
-- 仮想ワークスペース（GitHub Repositories など、ファイルがローカルにない環境）では `git` を実行できないので、差分なしのプレビューと編集だけ使えます。
-- ページのJSを実行する前提や、脆弱性の報告先は [SECURITY.md](SECURITY.md) にあります。
 
 ## 開発
 

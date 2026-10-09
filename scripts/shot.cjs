@@ -1,12 +1,6 @@
 #!/usr/bin/env node
-// HTML ファイルを拡張と同じ方法で描画し（test/harness.ts）、Chromium でスクリーンショットを撮る。
-// webview スクリプト（media/preview.js）の見た目を目視確認するための開発用ツール。
-//
-//   node scripts/shot.cjs <file.html> [--base HEAD|INDEX|<ref>|none] [--out .temp/shot.png] [--width 1280]
-//
-// 比較元の既定は HEAD（拡張の既定 INDEX と違う。ステージと比べるなら --base INDEX）。
-// Chromium と playwright-core は devcontainer（Dockerfile の dev ステージ）が持つ。VS Code の
-// webview ではないので acquireVsCodeApi は無く、編集の送信は console に出るだけ。
+// HTML を拡張と同じ方法で描画し（test/harness.ts）、Chromium でスクショを撮る。webview（media/preview.js）の目視確認用。
+// --base の既定は HEAD（拡張の既定は INDEX）。
 'use strict';
 const { execFileSync } = require('node:child_process');
 const fs = require('node:fs');

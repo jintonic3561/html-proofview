@@ -15,16 +15,11 @@ if ! command -v claude >/dev/null 2>&1; then
 else
   echo "    already installed"
 fi
-# PATH が切れていれば command not found で落とす（黙って「入ったつもり」にしない）
 claude --version
 
 # defaultMode=bypassPermissions は Dockerfile が /etc/claude-code/managed-settings.json に焼き込む。
 
 # --- direnv: .env の読み込み -----------------------------------------------
-# .envrc の許可は ~/.local/share/direnv（ユーザレベル）に残るのでコンテナ再作成で消える。毎回許可し直す。
-# 非対話シェルは devcontainer.json の containerEnv BASH_ENV（bash_env.sh）が拾う。BASH_ENV は
-# 対話シェルでは読まれないため、VS Code のターミナル向けに ~/.bashrc へ direnv の hook を仕掛ける
-# （~/.bashrc はイメージ側なのでコンテナ再作成で消える。毎回張り直す）。
 echo "==> direnv: .envrc の許可と対話シェルへの hook"
 direnv allow "$WORKSPACE_DIR"
 BASHRC="$HOME/.bashrc"
@@ -35,25 +30,18 @@ else
   printf '\n%s\neval "$(direnv hook bash)"\n' "$MARKER" >> "$BASHRC"
   echo "    ~/.bashrc に追記"
 fi
-# このスクリプト自身は許可前に起動しているので、以降の gh 認証確認のためにここで読み込む。
 eval "$(cd "$WORKSPACE_DIR" && direnv export bash 2>/dev/null)"
 
 # --- gh --------------------------------------------------------------------
-# 認証は .env の GH_TOKEN を環境変数として渡すだけ（gh 側にログイン状態を持たせない
-# ＝ .env を唯一の秘密ソースに保つ）。
+# 認証は .env の GH_TOKEN を環境変数として渡すだけ。
 echo "==> gh: 認証確認"
 if gh auth status >/dev/null 2>&1; then
   echo "    ok"
-  # git の credential helper をコンテナの gh に向け直す。Dev Containers はホストの ~/.gitconfig を
-  # コピーしてくるため、ホスト側の gh の絶対パス（例: /home/<host>/.local/bin/gh）が残っていて
-  # git fetch/push が「gh: not found」で落ちる。setup-git が github.com 向けの helper を上書きする。
   gh auth setup-git --hostname github.com
 else
   echo "    未認証 → .env の GH_TOKEN を確認（gh auth status で詳細）。設定後にこのスクリプトを再実行してよい"
 fi
 
-# コミットの作者情報。ホストの ~/.gitconfig に user が無いとコミットが「Author identity unknown」で
-# 落ちるため、未設定のときだけ GH_TOKEN の GitHub アカウント（login と noreply アドレス）で埋める。
 echo "==> git: 作者情報"
 if git config --global user.email >/dev/null 2>&1; then
   echo "    already configured ($(git config --global user.email))"
@@ -72,7 +60,6 @@ echo "==> npm ci"
 (cd "$WORKSPACE_DIR" && npm ci)
 
 # --- 動作確認 --------------------------------------------------------------
-# 環境が正しく組めていれば必ず通る（Node / git / jsdom / esbuild の動作確認を兼ねる）。
 echo "==> npm run typecheck && npm test"
 (cd "$WORKSPACE_DIR" && npm run typecheck && npm test)
 
