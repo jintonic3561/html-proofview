@@ -15,7 +15,8 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
   const p = S.panel;
   const stateOf = () => JSON.parse(p.html.match(/id="__hd_state">(.*?)<\/script>/)[1]);
   const st = stateOf();
-  console.log('stats', st.stats, 'base', st.baseLabel);
+  assert.deepStrictEqual(st.stats, { added: 0, removed: 0, modified: 1 });
+  assert.strictEqual(st.baseLabel, 'HEAD');
   assert.ok(p.html.includes("script-src 'nonce-"));
   assert.ok(p.html.includes('<base href="https://file+.vscode-resource'));
   // find id of the h1
@@ -29,7 +30,8 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
   assert.strictEqual(S.warnings.length, 1);
   // reveal
   await p.send({ type: 'reveal', id });
-  console.log('selection', S.selection.start, S.selection.end);
+  const at = S.doc.getText().indexOf('毎日の仕事を、ぐっと速く。');
+  assert.deepStrictEqual([S.selection.start.offset, S.selection.end.offset], [at, at + '毎日の仕事を、ぐっと速く。'.length]);
   // save -> base reload
   const before = p.renders; await S.doc.save(); await sleep(300);
   assert.ok(p.renders > before);

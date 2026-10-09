@@ -15,7 +15,10 @@ node_modules/**
 dist/test.js
 dist/*.test.js
 .gitignore
-.env.example
+# .env はシークレット。vsce は .gitignore を見ないので、ここで明示しないと手元のパッケージに入る
+.env
+.env.*
+.envrc
 CLAUDE.md
 Dockerfile
 package-lock.json

@@ -18,28 +18,23 @@ const cur = base
   .replace('Hello', 'Hi');
 
 const r = render(cur, base, { head: '<!--HEAD-->', tail: '<!--TAIL-->' });
-console.log(r.stats);
-console.log(r.html);
 assert.deepStrictEqual(r.stats, { added: 1, removed: 1, modified: 2 });
 
 // edit: change one word, keep entity and line break
 const { nodes } = extract(cur);
 const n = nodes.find((x) => x.norm.startsWith('この製品'))!;
-console.log(JSON.stringify(n.norm));
 const e = editForNode(cur, n, 'この製品は かなり快適です。© 2025')!;
 const edited = cur.slice(0, e.start) + e.text + cur.slice(e.end);
-console.log(e, '\n', edited.slice(n.start - 5, n.end + 10));
 assert.ok(edited.includes('&copy; 2025'));
 assert.ok(edited.includes('この製品は\n     かなり快適です。'));
 
 // CRLF offsets
 const crlf = '<p>a\r\nb &amp; c</p>\r\n<p>x</p>';
 const nn = extract(crlf).nodes;
-console.log(nn.map((x) => [x.norm, JSON.stringify(crlf.slice(x.coreStart, x.coreEnd))]));
 const e2 = editForNode(crlf, nn[0], 'a b & d')!;
-console.log(e2, JSON.stringify(crlf.slice(0, e2.start) + e2.text + crlf.slice(e2.end)));
+assert.strictEqual(crlf.slice(0, e2.start) + e2.text + crlf.slice(e2.end), '<p>a\r\nb &amp; d</p>\r\n<p>x</p>');
 // no base (untracked)
-console.log(render(cur, null, { head: '', tail: '' }).stats);
+assert.deepStrictEqual(render(cur, null, { head: '', tail: '' }).stats, { added: 0, removed: 0, modified: 0 });
 
 // clearing a text removes the elements it leaves empty
 const clear = (src: string, text: string) => {
@@ -68,4 +63,4 @@ assert.strictEqual(clear('<p><!-- note -->x</p>', 'x'), '');
 assert.strictEqual(clear('<p><img src="a.png">x</p>', 'x'), '<p><img src="a.png"></p>');
 // no end tag in the source: leave the element alone
 assert.strictEqual(clear('<ul><li>A<li>B</ul>', 'A'), '<ul><li><li>B</ul>');
-console.log('OK');
+console.log('core OK');
