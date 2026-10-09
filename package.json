@@ -101,8 +101,8 @@
         },
         "htmlProofView.autoSave": {
           "type": "boolean",
-          "default": false,
-          "description": "プレビューで文言を編集したらファイルを自動保存する"
+          "default": true,
+          "description": "プレビューで確定した編集をそのままファイルに保存する。オフにするとエディタ上の未保存の変更として入るだけになる"
         },
         "htmlProofView.allowPageScripts": {
           "type": "boolean",
