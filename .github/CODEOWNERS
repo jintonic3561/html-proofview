@@ -1,0 +1,3 @@
+# main へのマージには code owner の承認が要る（リポジトリのルールセット「main: PR 経由のみ」が
+# "Require review from Code Owners" を有効にしている）。自分の PR は admin の bypass でそのままマージできる。
+* @jintonic3561
