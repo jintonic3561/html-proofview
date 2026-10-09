@@ -1,0 +1,18 @@
+# 依存の更新 PR。月 1 回・まとめて 1 本にして通知を減らす。
+# @types/vscode は engines.vscode（対応する VS Code の最低バージョン）と揃える必要があり、
+# 単独で上げると vsce がパッケージを拒否するので除外する（上げるときは両方を手で）。
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      npm:
+        patterns: ["*"]
+    ignore:
+      - dependency-name: "@types/vscode"
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
