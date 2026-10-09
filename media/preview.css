@@ -55,6 +55,9 @@ html:not(.hd-off) .hd-locked {
 }
 .hd-pending { opacity: .5; transition: opacity .2s; }
 
+::highlight(hd-find) { background-color: rgba(255, 213, 0, .55); }
+::highlight(hd-find-current) { background-color: rgba(255, 140, 0, .9); color: #000; }
+
 @keyframes hd-flash { 0%, 60% { outline: 3px solid #bf8700; outline-offset: 3px; } 100% { outline-color: transparent; } }
 .hd-flash { animation: hd-flash 1.2s ease-out; }
 

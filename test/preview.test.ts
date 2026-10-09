@@ -110,5 +110,163 @@ const cur = base.replace('  <p>消える段落</p>\n', '');
   const dom2 = new JSDOM(plain.html + `<script>${previewJs}</script>`, { runScripts: 'dangerously', pretendToBeVisual: true });
   const d2: any = dom2.window.document;
   assert.strictEqual(d2.getElementById('__hd_toolbar').shadowRoot.querySelector('.l').hidden, true);
+
+  await findInPage();
   console.log('preview OK');
 })().catch((e) => { console.error(e); process.exit(1); });
+
+// Boots the webview script on a rendered page with the real preview.css (it hides
+// deleted text while the diff is off). `state` is what vscode.getState() returns.
+function boot(source: string, base: string | null, state: any = null) {
+  const css = fs.readFileSync(path.join(__dirname, '..', 'media', 'preview.css'), 'utf8');
+  // jsdom computes no display for inline elements
+  const r = render(source, base, { head: `<style>b, span, ins, del { display: inline }</style><style>${css}</style>`, tail: '' });
+  const st = { saved: state };
+  const dom = new JSDOM(r.html +
+    `<script type="application/json" id="__hd_state">${JSON.stringify({ stats: r.stats, baseLabel: 'HEAD', version: 1 })}</script>` +
+    `<script>${previewJs}</script>`, {
+    runScripts: 'dangerously',
+    pretendToBeVisual: true,
+    beforeParse(w: any) {
+      w.acquireVsCodeApi = () => ({
+        postMessage() {},
+        getState: () => st.saved,
+        setState: (s: any) => { st.saved = s; },
+      });
+      Object.defineProperty(w.HTMLElement.prototype, 'innerText', { get() { return this.textContent; } });
+      // no layout in jsdom: every match is in view
+      w.Range.prototype.getBoundingClientRect = () => ({ top: 0, bottom: 0 });
+      w.CSS = { highlights: new Map() };
+      w.Highlight = class extends Set { priority = 0; };
+    },
+  });
+  const w: any = dom.window;
+  const d = w.document;
+  const bar = d.getElementById('__hd_toolbar').shadowRoot;
+  const input = bar.querySelector('.find input');
+  return {
+    w, d, bar, input,
+    state: () => JSON.parse(JSON.stringify(st.saved)),
+    pos: () => bar.querySelector('.fpos').textContent,
+    all: () => Array.from(w.CSS.highlights.get('hd-find') || []).map((r: any) => r.toString()),
+    cur: () => Array.from(w.CSS.highlights.get('hd-find-current') || [])[0] as any,
+    key: (el: any, key: string, o: any = {}) => {
+      const e = new w.KeyboardEvent('keydown', { key, bubbles: true, cancelable: true, composed: true, ...o });
+      el.dispatchEvent(e);
+      return e;
+    },
+    type: async (text: string) => {
+      input.value = text;
+      input.dispatchEvent(new w.Event('input', { bubbles: true }));
+      await tick();
+    },
+  };
+}
+
+async function findInPage() {
+  const base = `<!DOCTYPE html>
+<html><head><title>料金</title></head>
+<body>
+  <h1>料金プラン</h1>
+  <p id="p">月額<b>料金</b>は安い。料金の詳細</p>
+  <p>消える料金の段落</p>
+  <p>ここは料</p><p>金額</p>
+  <p hidden>料金（非表示）</p>
+  <p>Price
+     LIST</p>
+  <p id="last">最後の料金</p>
+</body></html>`;
+  const cur = base.replace('  <p>消える料金の段落</p>\n', '');
+
+  // ---- Ctrl+F opens the find box; typing searches the visible text
+  const v = boot(cur, base);
+  assert.ok(v.bar.querySelector('.find').hidden);
+  assert.ok(v.key(v.d.body, 'f', { ctrlKey: true }).defaultPrevented);
+  assert.ok(!v.bar.querySelector('.find').hidden);
+  assert.strictEqual(v.bar.activeElement, v.input);
+  await v.type('料金');
+  // the deleted paragraph is shown while the diff is on; hidden text, title and text across blocks are not
+  assert.deepStrictEqual(v.all(), ['料金', '料金', '料金', '料金', '料金']);
+  assert.strictEqual(v.pos(), '1/5');
+  assert.ok(v.d.querySelector('h1').contains(v.cur().startContainer));
+
+  // ---- Enter / Shift+Enter / F3 step through the matches and wrap
+  v.key(v.input, 'Enter');
+  assert.strictEqual(v.pos(), '2/5');
+  assert.ok(v.d.querySelector('#p b').contains(v.cur().startContainer));
+  v.key(v.input, 'Enter', { shiftKey: true });
+  v.key(v.input, 'Enter', { shiftKey: true });
+  assert.strictEqual(v.pos(), '5/5');
+  assert.ok(v.d.getElementById('last').contains(v.cur().startContainer));
+  v.key(v.d.body, 'F3');
+  assert.strictEqual(v.pos(), '1/5');
+  // single-key shortcuts do not fire while typing in the box
+  assert.ok(!v.key(v.input, 'n').defaultPrevented && !v.key(v.input, 'd').defaultPrevented);
+  assert.ok(!v.d.documentElement.classList.contains('hd-off'));
+
+  // ---- across inline elements, case and whitespace insensitive, never across blocks
+  await v.type('額料金は');
+  assert.deepStrictEqual(v.all(), ['額料金は']);
+  await v.type('price list');
+  assert.deepStrictEqual(v.all(), ['Price\n     LIST']);
+  // Enter right after typing runs the new query instead of stepping through the old matches
+  v.input.value = '料金の';
+  v.input.dispatchEvent(new v.w.Event('input'));
+  v.key(v.input, 'Enter');
+  assert.deepStrictEqual(v.all(), ['料金の', '料金の']);
+  assert.strictEqual(v.pos(), '1/2');
+  await v.type('料金額');
+  assert.deepStrictEqual(v.all(), []);
+  assert.strictEqual(v.pos(), '結果なし');
+  assert.ok(v.bar.querySelector('.find').classList.contains('none'));
+
+  // ---- turning the diff off hides the deleted match and keeps the selected one
+  await v.type('料金');
+  v.key(v.input, 'Enter'); v.key(v.input, 'Enter');
+  assert.strictEqual(v.cur().toString(), '料金');
+  assert.strictEqual(v.cur().startContainer.data, 'は安い。料金の詳細');
+  v.key(v.d.body, 'd');
+  assert.strictEqual(v.pos(), '3/4');
+  v.key(v.d.body, 'd');
+  assert.strictEqual(v.pos(), '3/5');
+  // the selected match is the deleted one: after it is hidden, the next step lands on the one after it
+  v.key(v.input, 'Enter');
+  assert.ok(v.cur().startContainer.parentElement.closest('.hd-removed'));
+  v.key(v.d.body, 'd');
+  assert.strictEqual(v.pos(), '–/4');
+  v.key(v.d.body, 'F3');
+  assert.strictEqual(v.pos(), '4/4');
+  assert.ok(v.d.getElementById('last').contains(v.cur().startContainer));
+  v.key(v.d.body, 'd');
+
+  // ---- the find box survives a rerender at the same match
+  v.key(v.input, 'Enter', { shiftKey: true }); v.key(v.input, 'Enter', { shiftKey: true });
+  assert.strictEqual(v.pos(), '3/5');
+  const saved = v.state();
+  const v2 = boot(cur, base, saved);
+  assert.ok(!v2.bar.querySelector('.find').hidden);
+  assert.strictEqual(v2.input.value, '料金');
+  assert.strictEqual(v2.pos(), '3/5');
+  assert.strictEqual(v2.cur().startContainer.data, 'は安い。料金の詳細');
+  // ...and when an edit removed the selected match, the next step lands on the one after it
+  const v3 = boot(cur.replace('料金の詳細', '価格の詳細'), cur.replace('料金の詳細', '価格の詳細'), saved);
+  assert.strictEqual(v3.pos(), '–/3');
+  v3.key(v3.d.body, 'F3');
+  assert.ok(v3.d.getElementById('last').contains(v3.cur().startContainer));
+
+  // ---- Escape closes the box and clears the highlights
+  v.key(v.input, 'Escape');
+  assert.ok(v.bar.querySelector('.find').hidden);
+  assert.deepStrictEqual(v.all(), []);
+  assert.strictEqual(v.state().find, null);
+
+  // ---- Ctrl+F seeds the query with the selected text
+  const sel = v.w.getSelection();
+  const r = v.d.createRange();
+  const h1Text = v.d.querySelector('h1 .hd-text').firstChild;
+  r.setStart(h1Text, 2); r.setEnd(h1Text, 5);
+  sel.removeAllRanges(); sel.addRange(r);
+  v.key(v.d.body, 'f', { ctrlKey: true });
+  assert.strictEqual(v.input.value, 'プラン');
+  assert.strictEqual(v.pos(), '1/1');
+}
