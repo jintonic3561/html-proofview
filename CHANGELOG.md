@@ -1,7 +1,5 @@
 # Changelog
 
-このファイルの `## <version>` 節が、同じバージョンのタグを push したときの GitHub Release のリリースノートになる（`.github/workflows/release.yml`）。
-
 ## 0.3.0 - 2026-10-07
 
 - ソースに対応づけられない文言（SVG 内のラベル、`textarea`・`option` の中身、ページ自身の JS が書いた文言）をグレーの点線で囲んで表示する。見えるが編集はできない。件数はツールバーの `⊘` に出る
