@@ -116,7 +116,7 @@
     "build": "esbuild src/extension.ts --bundle --platform=node --format=cjs --target=node18 --external:vscode --outfile=dist/extension.js --minify",
     "typecheck": "tsc --noEmit",
     "test": "esbuild test/core.test.ts --bundle --platform=node --outfile=dist/test.js --log-level=warning && node dist/test.js && node test/run-ext-test.js && esbuild test/preview.test.ts --bundle --platform=node --external:jsdom --outfile=dist/preview.test.js --log-level=warning && node dist/preview.test.js",
-    "package": "npm run build && vsce package --no-dependencies",
+    "package": "npm run build && node scripts/marketplace-readme.cjs && vsce package --no-dependencies --readme-path dist/marketplace-readme.md",
     "vscode:prepublish": "npm run build"
   },
   "dependencies": {
