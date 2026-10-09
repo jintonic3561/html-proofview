@@ -4,7 +4,19 @@
   "description": "HTMLをレンダリングした見た目のまま、文言のgit差分を表示してその場で修正できるプレビュー",
   "version": "0.3.0",
   "publisher": "tonic",
+  "author": {
+    "name": "tonic",
+    "url": "https://github.com/jintonic3561"
+  },
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jintonic3561/html-proofview.git"
+  },
+  "bugs": {
+    "url": "https://github.com/jintonic3561/html-proofview/issues"
+  },
+  "homepage": "https://github.com/jintonic3561/html-proofview#readme",
   "engines": {
     "vscode": "^1.85.0"
   },
@@ -23,6 +35,12 @@
   "icon": "media/icon.png",
   "main": "./dist/extension.js",
   "activationEvents": [],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": false,
+      "description": "比較元の取得にワークスペース内で git コマンドを実行するため、信頼されたワークスペースでのみ有効です。"
+    }
+  },
   "contributes": {
     "commands": [
       {
@@ -105,6 +123,7 @@
     "@types/jsdom": "^30.0.0",
     "@types/node": "^20.19.19",
     "@types/vscode": "1.85.0",
+    "@vscode/vsce": "^4.0.0",
     "esbuild": "^0.28.2",
     "jsdom": "^26.1.0",
     "typescript": "^5.9.3"

@@ -1,10 +1,22 @@
+# .vsix に入れないもの。配布に要るのは package.json / README.md / CHANGELOG.md / LICENSE / media/ / dist/extension.js
+.vscode/**
+.devcontainer/**
+.github/**
+.claude/**
+.logs/**
+.temp/**
+docs/**
+scripts/**
 src/**
 test/**
 node_modules/**
-tsconfig.json
-.vscode/**
 **/*.map
 *.vsix
 dist/test.js
 dist/*.test.js
 .gitignore
+.env.example
+CLAUDE.md
+Dockerfile
+package-lock.json
+tsconfig.json

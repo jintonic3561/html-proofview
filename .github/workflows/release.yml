@@ -1,0 +1,67 @@
+# vX.Y.Z タグを push すると .vsix を作って GitHub Release に添付し、
+# Secrets に VSCE_PAT があれば VS Code Marketplace へ、OVSX_PAT があれば Open VSX へ publish する。
+# タグの付け方・PAT の取り方は docs/release.md。
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+
+      - name: タグと package.json の version が一致するか
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          ver="$(node -p "require('./package.json').version")"
+          if [ "$tag" != "$ver" ]; then
+            echo "::error::tag v$tag と package.json の version $ver が一致しない"
+            exit 1
+          fi
+
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run package
+
+      - name: GitHub Release（CHANGELOG.md の該当節をリリースノートにする）
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ver="${GITHUB_REF_NAME#v}"
+          awk -v v="$ver" '/^## /{p = ($2 == v)} p && !/^## /' CHANGELOG.md > notes.md
+          if [ -s notes.md ]; then
+            gh release create "$GITHUB_REF_NAME" ./*.vsix --title "$GITHUB_REF_NAME" --notes-file notes.md
+          else
+            gh release create "$GITHUB_REF_NAME" ./*.vsix --title "$GITHUB_REF_NAME" --generate-notes
+          fi
+
+      - name: VS Code Marketplace
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: |
+          if [ -z "$VSCE_PAT" ]; then
+            echo "::warning::Secrets に VSCE_PAT が無いので Marketplace への publish はスキップ"
+            exit 0
+          fi
+          npx vsce publish --packagePath ./*.vsix
+
+      - name: Open VSX
+        env:
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
+        run: |
+          if [ -z "$OVSX_PAT" ]; then
+            echo "Secrets に OVSX_PAT が無いので Open VSX への publish はスキップ"
+            exit 0
+          fi
+          npx --yes ovsx@1.2.0 publish ./*.vsix -p "$OVSX_PAT"
