@@ -28,6 +28,16 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
   // stale version is rejected
   await p.send({ type: 'edit', id, text: 'x', version: 1 });
   assert.strictEqual(S.warnings.length, 1);
+  // malformed messages (the page's own scripts share the webview) are ignored, not applied, and do not throw
+  const before0 = S.doc.getText();
+  await p.send({ type: 'edit', id: '__proto__', text: 'x', version: S.doc.version });
+  await p.send({ type: 'edit', id: 'constructor', text: 'x', version: S.doc.version });
+  await p.send({ type: 'edit', id, text: 42, version: S.doc.version });
+  await p.send({ type: 'edit', id: 1.5, text: 'x', version: S.doc.version });
+  await p.send({ type: 'reveal', id: 'length' });
+  await p.send(null); await p.send('edit'); await p.send({});
+  assert.strictEqual(S.doc.getText(), before0);
+  assert.strictEqual(S.warnings.length, 1);
   // reveal
   await p.send({ type: 'reveal', id });
   const at = S.doc.getText().indexOf('毎日の仕事を、ぐっと速く。');
@@ -50,6 +60,11 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
   S.config.baseRef = 'HEAD';
   await p.send({ type: 'refresh' });
   assert.strictEqual(stateOf().stats.modified, 1);
+  // a ref starting with '-' is refused before it reaches git (it would be read as an option)
+  S.config.baseRef = '--output=pwned';
+  await p.send({ type: 'refresh' });
+  assert.match(stateOf().baseLabel, /無効/);
+  assert.ok(!fs.existsSync(path.join(path.dirname(file), 'pwned')));
   // untracked file vs INDEX: everything is new
   S.config.baseRef = 'INDEX';
   execFileSync('git', ['rm', '-q', '--cached', path.basename(file)], { cwd: path.dirname(file) });

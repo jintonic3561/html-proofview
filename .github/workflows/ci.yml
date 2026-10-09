@@ -7,6 +7,10 @@ on:
   push:
     branches: [main]
 
+# 読むだけ。リポジトリ既定の権限に依存しない
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest

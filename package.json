@@ -29,16 +29,22 @@
     "diff",
     "git",
     "preview",
-    "copywriting",
     "文言"
   ],
   "icon": "media/icon.png",
   "main": "./dist/extension.js",
+  "extensionKind": [
+    "workspace"
+  ],
   "activationEvents": [],
   "capabilities": {
     "untrustedWorkspaces": {
       "supported": false,
       "description": "比較元の取得にワークスペース内で git コマンドを実行するため、信頼されたワークスペースでのみ有効です。"
+    },
+    "virtualWorkspaces": {
+      "supported": "limited",
+      "description": "ファイルがローカルにないため git で比較元を取得できません。差分なしのプレビューと編集だけ使えます。"
     }
   },
   "contributes": {

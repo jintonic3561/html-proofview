@@ -5,6 +5,8 @@
 .claude/**
 .logs/**
 .temp/**
+.worktrees/**
+*.log
 docs/**
 scripts/**
 src/**
@@ -20,6 +22,7 @@ dist/*.test.js
 .env.*
 .envrc
 CLAUDE.md
+SECURITY.md
 Dockerfile
 package-lock.json
 tsconfig.json
