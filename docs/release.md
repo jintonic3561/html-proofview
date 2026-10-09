@@ -44,7 +44,7 @@ git tag vX.Y.Z && git push origin vX.Y.Z
 
 `marketplace` job は PAT を使わず、GitHub OIDC で Entra ID のアプリ登録に入って `vsce publish --azure-credential` する。次の 3 つが噛み合って動くので、どれかを変えたら残りも合わせる。
 
-- Entra ID のアプリ登録の federated credential … subject は environment `marketplace`（`repo:<owner>/<repo>:environment:marketplace`）
+- Entra ID のアプリ登録の federated credential … 「その他の発行者」で登録する。issuer は `https://token.actions.githubusercontent.com`、subject は `repo:<owner>@<owner_id>/<repo>@<repo_id>:environment:marketplace`。この repo の OIDC subject は ID 付きの書式なので、ポータルの「GitHub Actions」シナリオが組み立てる ID なしの subject では一致しない。正確な値は `gh api repos/<owner>/<repo>/actions/oidc/customization/sub` の `sub_claim_prefix` で確かめる
 - GitHub の environment `marketplace` … デプロイ元を `v*` タグに限る。資格情報を取れるのはここを通る job だけ
 - Marketplace の publisher のメンバー … アプリ登録を Contributor で入れる。入れる ID は job の「Marketplace から見たこの資格情報の ID」ステップに出る
 
