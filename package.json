@@ -2,7 +2,7 @@
   "name": "html-proofview",
   "displayName": "HTML ProofView",
   "description": "HTMLをレンダリングした見た目のまま、文言のgit差分を表示してその場で修正できるプレビュー",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "publisher": "tonic",
   "author": {
     "name": "tonic",
