@@ -38,7 +38,7 @@ git tag vX.Y.Z && git push origin vX.Y.Z
 
 - タグと `package.json` の version が一致しないとワークフローは止まる
 - 進捗は `gh run watch` か Actions タブ。Marketplace への反映は数分〜十数分
-- Marketplace だけ失敗したら、直してからその run の `marketplace` job だけ re-run する（release job は Release 作成済みなので再実行しない）
+- 失敗したら直してからその run を re-run する。全 job の re-run でもいい（作成済みの Release は作り直さない）
 
 ## Marketplace への publish の仕組み（管理者）
 
