@@ -3,15 +3,18 @@
 配布先は 2 つ。どちらも `vX.Y.Z` タグの push を起点に CI（`.github/workflows/release.yml`）が作る。手元から `vsce publish` はしない。
 
 - GitHub Releases … `.vsix` を添付。Marketplace を使わない人向け（`code --install-extension html-proofview-X.Y.Z.vsix`）
-- VS Code Marketplace … publisher `tonic` の `html-proofview`。Secrets に `VSCE_PAT` があるときだけ publish する
+- VS Code Marketplace … publisher `tonic` の `html-proofview`。PAT は使わず、Entra ID のアプリ登録に GitHub OIDC で入って publish する。Actions の Variables に `AZURE_CLIENT_ID` があるときだけ動く
 - （任意）Open VSX … Secrets に `OVSX_PAT` があるときだけ publish する。VSCodium / Cursor などの利用者向け
 
-## 初回だけ: Marketplace の publisher と PAT
+## Marketplace への publish の仕組み
 
-1. https://marketplace.visualstudio.com/manage に Microsoft アカウントでサインインし、publisher を作る。ID は `package.json` の `publisher`（`tonic`）と一致させる。ID が取れなければ `package.json` の `publisher` を取れた ID に変える（拡張の識別子 `publisher.name` が変わるので、公開前に決めること）
-2. https://dev.azure.com で Personal Access Token を作る。Organization は **All accessible organizations**、Scopes は **Marketplace: Manage** のみ。期限は最長（1 年）にして、切れたら作り直す
-3. GitHub のリポジトリ → Settings → Secrets and variables → Actions → `VSCE_PAT` にその値を入れる
-4. Open VSX も使うなら https://open-vsx.org でサインインして namespace `tonic` を作り、Access Token を `OVSX_PAT` に入れる
+workflow の `marketplace` job が担当する。依存しているのは次の 3 つで、どれかを変えたら残りも合わせる。
+
+- Entra ID のアプリ登録の federated credential … subject が environment `marketplace`（`repo:jintonic3561/html-proofview:environment:marketplace`）
+- GitHub の environment `marketplace` … デプロイ元を `v*` タグに限っている。資格情報を取れるのはここを通る job だけ
+- Marketplace の publisher `tonic` のメンバー … このアプリ登録を Contributor で入れてある。ID は job の「Marketplace から見たこの資格情報の ID」ステップに出る
+
+Actions の Variables に `AZURE_CLIENT_ID` / `AZURE_TENANT_ID`。秘密ではないので Secrets ではなく Variables に置く。PAT と違って期限切れはない。
 
 ## main の保護ルール
 
@@ -44,6 +47,8 @@ git tag vX.Y.Z && git push origin vX.Y.Z
 ワークフローはタグと `package.json` の version が一致しないと止まる。タグは、version を上げたコミットを含む main に打つ。
 
 進捗は `gh run watch` か Actions タブ。終わると Releases に `.vsix` が付き、Marketplace は数分〜十数分で反映される（初回は審査で遅れることがある）。
+
+Marketplace だけ失敗したら、直してから Actions でその run の `marketplace` job だけ re-run する（GitHub Release は作成済みなので release job は再実行しない）。
 
 ## 手元で .vsix を確かめる
 
