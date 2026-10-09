@@ -1,7 +1,8 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import { execFile } from 'child_process';
-import { render, editForNode, TextNode } from './core';
+import { randomBytes } from 'crypto';
+import { render, editForNode, escapeText, TextNode } from './core';
 
 const VIEW_TYPE = 'htmlProofView.preview';
 
@@ -24,6 +25,8 @@ async function loadBase(uri: vscode.Uri, ref: string): Promise<BaseInfo> {
   if (uri.scheme !== 'file') return { text: null, label: 'ローカルファイルではありません' };
   const dir = path.dirname(uri.fsPath);
   const index = isIndex(ref);
+  // No ref starts with '-'. Refuse such a value instead of letting git read it as an option.
+  if (!index && ref.startsWith('-')) return { text: null, label: `ref「${ref}」は無効` };
   const label = index ? 'ステージ（add済み）' : ref;
   try {
     const text = await git(['show', `${index ? '' : ref}:./${path.basename(uri.fsPath)}`], dir);
@@ -40,10 +43,7 @@ async function loadBase(uri: vscode.Uri, ref: string): Promise<BaseInfo> {
 }
 
 function nonce(): string {
-  let s = '';
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  for (let i = 0; i < 32; i++) s += chars[Math.floor(Math.random() * chars.length)];
-  return s;
+  return randomBytes(16).toString('hex');
 }
 
 class Preview {
@@ -143,7 +143,9 @@ class Preview {
         tail: '',
       });
     } catch (e: any) {
-      this.panel.webview.html = `<body><pre>HTMLの解析に失敗: ${String(e?.message ?? e)}</pre></body>`;
+      this.panel.webview.html =
+        `<meta http-equiv="Content-Security-Policy" content="default-src 'none'">` +
+        `<body><pre>HTMLの解析に失敗: ${escapeText(String(e?.message ?? e))}</pre></body>`;
       return;
     }
     const tail =
@@ -154,18 +156,21 @@ class Preview {
     this.panel.webview.html = result.html + tail;
   }
 
-  private async onMessage(m: any) {
-    switch (m?.type) {
+  // The page's own scripts run in the same webview, so a message may have any shape: check it.
+  private async onMessage(m: unknown) {
+    if (!m || typeof m !== 'object') return;
+    const msg = m as { type?: unknown; id?: unknown; text?: unknown; version?: unknown };
+    const node = Number.isInteger(msg.id) ? this.nodes[msg.id as number] : undefined;
+    switch (msg.type) {
       case 'edit': {
-        if (m.version !== this.renderedVersion || this.doc.version !== this.renderedVersion) {
+        if (msg.version !== this.renderedVersion || this.doc.version !== this.renderedVersion) {
           vscode.window.showWarningMessage('HTML ProofView: ソースが更新されていたので編集を反映しませんでした。もう一度編集して。');
           this.update();
           return;
         }
-        const node = this.nodes[m.id];
-        if (!node) return;
+        if (!node || typeof msg.text !== 'string') return;
         const source = this.doc.getText();
-        const e = editForNode(source, node, String(m.text));
+        const e = editForNode(source, node, msg.text);
         if (!e) { this.update(); return; }
         const we = new vscode.WorkspaceEdit();
         we.replace(this.doc.uri, new vscode.Range(this.doc.positionAt(e.start), this.doc.positionAt(e.end)), e.text);
@@ -174,7 +179,6 @@ class Preview {
         break;
       }
       case 'reveal': {
-        const node = this.nodes[m.id];
         if (!node) return;
         const editor = await vscode.window.showTextDocument(this.doc, { viewColumn: vscode.ViewColumn.One, preserveFocus: false });
         const range = new vscode.Range(this.doc.positionAt(node.coreStart), this.doc.positionAt(node.coreEnd));

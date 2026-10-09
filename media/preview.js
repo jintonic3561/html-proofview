@@ -2,10 +2,13 @@
 (function () {
   'use strict';
   // The extension acquires the API in <head> before any page script can.
-  const vscode = window.__hd_vscode
-    || (typeof acquireVsCodeApi === 'function' ? acquireVsCodeApi() : null)
-    || { postMessage: (m) => console.log('postMessage', m), getState: () => null, setState: () => {} };
+  // Outside VS Code (scripts/shot.cjs) there is no API: log instead of posting.
+  let api = window.__hd_vscode;
   delete window.__hd_vscode;
+  if (!api && typeof acquireVsCodeApi === 'function') {
+    try { api = acquireVsCodeApi(); } catch (_) { /* a page script took it first */ }
+  }
+  const vscode = api || { postMessage: (m) => console.log('postMessage', m), getState: () => null, setState: () => {} };
 
   const stateEl = document.getElementById('__hd_state');
   const S = stateEl ? JSON.parse(stateEl.textContent) : { stats: { added: 0, removed: 0, modified: 0 }, baseLabel: '', version: 0 };
