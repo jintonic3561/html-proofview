@@ -7,7 +7,10 @@ const [cmd, file, a, b] = process.argv.slice(2);
 const dir = path.dirname(file);
 const src = fs.readFileSync(file, 'utf8');
 if (cmd === 'render') {
-  const base = execFileSync('git', ['show', `HEAD:./${path.basename(file)}`], { cwd: dir, encoding: 'utf8' });
+  // 比較元は HD_BASE（git ref。既定 HEAD。INDEX でステージ、none で比較元なし）
+  const ref = process.env.HD_BASE || 'HEAD';
+  const spec = ref.toUpperCase() === 'INDEX' ? '' : ref;
+  const base = ref === 'none' ? null : execFileSync('git', ['show', `${spec}:./${path.basename(file)}`], { cwd: dir, encoding: 'utf8' });
   const media = process.env.HD_MEDIA!;
   const r = render(src, base, {
     head: `<base href="file://${dir}/"><link rel="stylesheet" href="file://${media}/preview.css">`,

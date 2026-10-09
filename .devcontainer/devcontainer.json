@@ -1,0 +1,21 @@
+{
+	"name": "html-proofview",
+	// attach イメージはルート Dockerfile の dev ステージ
+	"build": {
+		"dockerfile": "../Dockerfile",
+		"context": "..",
+		"target": "dev"
+	},
+
+	"remoteUser": "node",
+
+	// .env を非対話シェル（Claude Code の bash・VS Code のタスク・npm scripts の
+	// 子プロセス等）の環境変数として読み込む。対話シェルは BASH_ENV を読まないので
+	// postCreate.sh が ~/.bashrc 側に同じ読み込みを仕掛ける。
+	"containerEnv": {
+		"BASH_ENV": "${containerWorkspaceFolder}/.devcontainer/bash_env.sh"
+	},
+
+	// Claude Code・gh/git 設定・npm ci・テスト
+	"postCreateCommand": "bash .devcontainer/postCreate.sh"
+}
