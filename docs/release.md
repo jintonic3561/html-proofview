@@ -59,6 +59,8 @@ code --install-extension html-proofview-X.Y.Z.vsix
 
 `.vsix` に入るものは `.vscodeignore` で決まる。`npx vsce ls` で一覧できる。
 
+Marketplace と VS Code の拡張ページに出る README は、`npm run package` が `README.md` から「開発」の節を除いて作る（`scripts/marketplace-readme.cjs`）。README を直したら、次のリリースでそのまま反映される。
+
 ## 対応する VS Code の最低バージョンを上げるとき
 
 `package.json` の `engines.vscode` と `devDependencies` の `@types/vscode` を同じ値にそろえる。片方だけ上げると `vsce package` が拒否する。Dependabot は `@types/vscode` を更新対象から除外してある。

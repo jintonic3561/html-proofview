@@ -1,4 +1,4 @@
-# .vsix に入れないもの。配布に要るのは package.json / README.md / CHANGELOG.md / LICENSE / media/ / dist/extension.js
+# .vsix に入れないもの。配布に要るのは package.json / dist/marketplace-readme.md（README.md から作る）/ CHANGELOG.md / LICENSE / media/ / dist/extension.js
 .vscode/**
 .devcontainer/**
 .github/**
@@ -17,6 +17,7 @@ node_modules/**
 dist/test.js
 dist/*.test.js
 .gitignore
+README.md
 # .env はシークレット。vsce は .gitignore を見ないので、ここで明示しないと手元のパッケージに入る
 .env
 .env.*
