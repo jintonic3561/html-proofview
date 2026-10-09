@@ -23,8 +23,17 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
   const id = Number(p.html.match(/data-hd-id="(\d+)"[^>]*>毎日の/)![1]);
   await p.send({ type: 'edit', id, text: '毎日の仕事を、ぐっと速く。', version: S.doc.version });
   assert.ok(S.doc.getText().includes('<h1>毎日の仕事を、ぐっと速く。</h1>'));
+  // autoSave (on by default): the committed edit is saved to the file
+  assert.ok(fs.readFileSync(file, 'utf8').includes('<h1>毎日の仕事を、ぐっと速く。</h1>'));
   await sleep(400);
   assert.ok(p.renders >= 2, 'rerendered');
+  // autoSave off: the edit only goes into the document
+  S.config.autoSave = false;
+  await p.send({ type: 'edit', id, text: '毎日の仕事を、もっと速く。', version: S.doc.version });
+  assert.ok(S.doc.getText().includes('<h1>毎日の仕事を、もっと速く。</h1>'));
+  assert.ok(fs.readFileSync(file, 'utf8').includes('<h1>毎日の仕事を、ぐっと速く。</h1>'));
+  S.config.autoSave = true;
+  await sleep(400);
   // stale version is rejected
   await p.send({ type: 'edit', id, text: 'x', version: 1 });
   assert.strictEqual(S.warnings.length, 1);
@@ -40,8 +49,8 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
   assert.strictEqual(S.warnings.length, 1);
   // reveal
   await p.send({ type: 'reveal', id });
-  const at = S.doc.getText().indexOf('毎日の仕事を、ぐっと速く。');
-  assert.deepStrictEqual([S.selection.start.offset, S.selection.end.offset], [at, at + '毎日の仕事を、ぐっと速く。'.length]);
+  const at = S.doc.getText().indexOf('毎日の仕事を、もっと速く。');
+  assert.deepStrictEqual([S.selection.start.offset, S.selection.end.offset], [at, at + '毎日の仕事を、もっと速く。'.length]);
   // save -> base reload
   const before = p.renders; await S.doc.save(); await sleep(300);
   assert.ok(p.renders > before);

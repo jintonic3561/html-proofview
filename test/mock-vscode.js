@@ -19,7 +19,7 @@ function makeDoc(file) {
   };
   return doc;
 }
-const state = { panel: null, warnings: [], doc: null, selection: null, config: { baseRef: 'HEAD', autoSave: false } };
+const state = { panel: null, warnings: [], doc: null, selection: null, config: { baseRef: 'HEAD', autoSave: true } };
 module.exports = {
   __state: state, __makeDoc: makeDoc,
   Uri,
