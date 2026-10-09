@@ -21,8 +21,9 @@ ENV PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers \
     PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 
 # fonts-noto-cjk: この拡張は日本語の文言を扱うので、Chromium のスクショで日本語が豆腐にならないようにする。
+# direnv: ワークスペースの .envrc（＝ .env）を環境変数として読み込む（.devcontainer/bash_env.sh を参照）。
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      git curl ca-certificates gnupg openssh-client less procps unzip sudo jq \
+      git curl ca-certificates gnupg openssh-client less procps unzip sudo jq direnv \
       fontconfig fonts-noto-cjk \
     && rm -rf /var/lib/apt/lists/* \
     && fc-cache -f

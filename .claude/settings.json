@@ -6,10 +6,7 @@
       "Read(**/.env.*.local)",
       "Edit(**/.env)",
       "Edit(**/.env.local)",
-      "Edit(**/.env.*.local)",
-      "Write(**/.env)",
-      "Write(**/.env.local)",
-      "Write(**/.env.*.local)"
+      "Edit(**/.env.*.local)"
     ]
   },
   "language": "japanese",
