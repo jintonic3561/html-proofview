@@ -40,14 +40,6 @@ git tag vX.Y.Z && git push origin vX.Y.Z
 - 進捗は `gh run watch` か Actions タブ。Marketplace への反映は数分〜十数分
 - Marketplace だけ失敗したら、直してからその run の `marketplace` job だけ re-run する（release job は Release 作成済みなので再実行しない）
 
-## main の保護ルール
-
-ルールセット「main: PR 経由のみ」（Settings → Rules）の要点。設定は git 管理外なのでここに書く。
-
-- main への直接 push・force push・削除は誰もできない（管理者も）。変更は必ず PR で入れる
-- マージには code owner（`.github/CODEOWNERS`）の承認 1 件が要る。承認後に push があれば承認は無効になる
-- 管理者だけが PR のマージで bypass できる。自分の PR はレビューなしでマージできる。bypass は明示したときだけ効く: `gh pr merge --admin`、Web UI では「Merge without waiting for requirements」
-
 ## Marketplace への publish の仕組み（管理者）
 
 `marketplace` job は PAT を使わず、GitHub OIDC で Entra ID のアプリ登録に入って `vsce publish --azure-credential` する。次の 3 つが噛み合って動くので、どれかを変えたら残りも合わせる。
