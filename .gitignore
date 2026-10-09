@@ -1,3 +1,38 @@
+# Node / ビルド生成物
 node_modules/
 dist/
+*.tsbuildinfo
+# vsce のパッケージ（配布物は CI がタグから作って Release に置く。手元で作ったものは置かない）
 *.vsix
+
+# 環境変数ファイル
+.env
+.env.local
+.env.*.local
+
+# ログ
+*.log
+.logs/*
+
+# IDE・OS
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Claude
+.claude/settings.local.json
+.claude/scheduled_tasks.lock
+.claude/worktrees/
+
+# temp
+.temp/
+.cache
+
+# ワークツリー
+.worktrees/
+
+# Windows Mark-of-the-Web（ダウンロード由来のゴミファイル）
+*:Zone.Identifier

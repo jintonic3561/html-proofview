@@ -1,0 +1,52 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(**/.env)",
+      "Read(**/.env.local)",
+      "Read(**/.env.*.local)",
+      "Edit(**/.env)",
+      "Edit(**/.env.local)",
+      "Edit(**/.env.*.local)",
+      "Write(**/.env)",
+      "Write(**/.env.local)",
+      "Write(**/.env.*.local)"
+    ]
+  },
+  "language": "japanese",
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/prompt-logger.mjs",
+            "statusMessage": "プロンプトをログに記録中..."
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "matcher": "permission_prompt|elicitation_dialog",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "CLAUDE_CODE_HOOK_EVENT=Notification \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/notify.sh",
+            "statusMessage": "Slack通知を送信中..."
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "CLAUDE_CODE_HOOK_EVENT=Stop \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/notify.sh",
+            "statusMessage": "完了通知を送信中..."
+          }
+        ]
+      }
+    ]
+  }
+}
