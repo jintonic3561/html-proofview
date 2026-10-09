@@ -1,16 +1,17 @@
-# タグの付け方・PAT の取り方は docs/release.md。
+# タグの付け方は docs/release.md。
 name: release
 
 on:
   push:
     tags: ["v*"]
 
-permissions:
-  contents: write
+permissions: {}
 
 jobs:
   release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -31,6 +32,10 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run package
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vsix
+          path: "*.vsix"
 
       - name: GitHub Release（CHANGELOG.md の該当節をリリースノートにする）
         env:
@@ -44,16 +49,43 @@ jobs:
             gh release create "$GITHUB_REF_NAME" ./*.vsix --title "$GITHUB_REF_NAME" --generate-notes
           fi
 
-      - name: VS Code Marketplace
-        env:
-          VSCE_PAT: ${{ secrets.VSCE_PAT }}
-        run: |
-          if [ -z "$VSCE_PAT" ]; then
-            echo "::warning::Secrets に VSCE_PAT が無いので Marketplace への publish はスキップ"
-            exit 0
-          fi
-          npx vsce publish --packagePath ./*.vsix
+  # PAT ではなく Entra ID のアプリ登録に GitHub OIDC で入り、その資格情報で publish する。
+  # 資格情報を出せるのは environment「marketplace」の job だけ（Entra 側の federated credential の subject がこれ）。
+  # 失敗してもこの job だけ re-run できるよう release job と分けている。
+  marketplace:
+    needs: release
+    if: vars.AZURE_CLIENT_ID != ''
+    runs-on: ubuntu-latest
+    environment: marketplace
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: vsix
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          allow-no-subscriptions: true
+      - name: Marketplace から見たこの資格情報の ID（publisher のメンバーに追加するのはこの値）
+        run: az rest -u https://app.vssps.visualstudio.com/_apis/profile/profiles/me --resource 499b84ac-1321-427f-aa17-267ca6975798 --query id -o tsv
+      - run: npx vsce publish --azure-credential --packagePath ./*.vsix
 
+  openvsx:
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: vsix
       - name: Open VSX
         env:
           OVSX_PAT: ${{ secrets.OVSX_PAT }}
