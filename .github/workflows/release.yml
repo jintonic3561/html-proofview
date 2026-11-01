@@ -71,7 +71,7 @@ jobs:
           node-version: "22"
           cache: npm
       - run: npm ci
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: vsix
       - uses: azure/login@v2
@@ -87,7 +87,7 @@ jobs:
     needs: release
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: vsix
       - name: Open VSX
