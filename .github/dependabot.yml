@@ -1,4 +1,6 @@
-# 依存の更新 PR。月 1 回・まとめて 1 本にして通知を減らす。
+# 依存の更新 PR。月 1 回・エコシステムごとにまとめて 1 本にして通知を減らす。
+# npm のメジャー更新は破壊的変更を伴いやすく、まとめると CI が落ちて動かせなくなるので除外し、必要なときに手で上げる
+# （脆弱性の修正は Dependabot security updates が別途個別に出す）。
 # @types/vscode は engines.vscode（対応する VS Code の最低バージョン）と揃える必要があり、
 # 単独で上げると vsce がパッケージを拒否するので除外する（上げるときは両方を手で）。
 version: 2
@@ -12,7 +14,12 @@ updates:
         patterns: ["*"]
     ignore:
       - dependency-name: "@types/vscode"
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: monthly
+    groups:
+      actions:
+        patterns: ["*"]
